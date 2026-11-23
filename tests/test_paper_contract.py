@@ -153,3 +153,20 @@ def test_display_aliases_do_not_erase_raw_onnx_types(tmp_path):
     assert call.raw_target == 'GroupQueryAttention'
     assert call.metadata['domain'] == 'com.microsoft'
     assert call.flops is None
+
+
+def test_onnx_dependency_error_precedes_unloaded_parser_error(monkeypatch):
+    import builtins
+    from operator_graph.parsers.onnx import OnnxParser
+
+    parser = OnnxParser()
+    original_import = builtins.__import__
+
+    def without_onnx(name, *args, **kwargs):
+        if name == 'onnx':
+            raise ModuleNotFoundError("No module named 'onnx'")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, '__import__', without_onnx)
+    with pytest.raises(ModuleNotFoundError, match='onnx'):
+        parser.parse()

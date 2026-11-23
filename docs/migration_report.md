@@ -60,6 +60,10 @@ The `static-v2.0` arithmetic and logical-access formulas are preserved. These co
 
 Weights-to-reports validation covers the locally generated small HF model and actual Qwen3-0.6B weights. The other six models were checked using archived JSON and were not re-exported from weights. Models must load with the installed dependency versions and support ONNX export; validation does not cover arbitrary custom models.
 
+## Readability review
+
+The behavior-preserving cleanup and its 74-test regression are recorded in [readability_review.md](readability_review.md).
+
 ## Additional usage
 
 ### Python API

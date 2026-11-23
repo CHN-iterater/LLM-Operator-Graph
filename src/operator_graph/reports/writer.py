@@ -38,15 +38,26 @@ def write_reports(report, output_dir):
                ("stage", "dtype", "num_output_tensors", "output_payload_bytes", "known_output_payload_bytes", "payload_coverage"))
     _write_csv(out / "level_widths.csv", [{"stage": s, "level": lv, "num_nodes": n}
         for s, stats in report["stages"].items() for lv,n in stats["level_widths"].items()])
-    def fmt(x):
-        return "NA" if x is None else f"{x:.4g}" if isinstance(x, float) else str(x)
+    _write_markdown_report(report, out)
+    return out
+
+
+def _format_metric(value):
+    if value is None:
+        return "NA"
+    if isinstance(value, float):
+        return f"{value:.4g}"
+    return str(value)
+
+
+def _write_markdown_report(report, out):
     lines = [f"# Quantitative metrics: {report['model_name']}", "", f"Cost model: {COST_MODEL_VERSION}", "",
         "| Stage | Nodes | Edges | Known FLOPs | Logical bytes | FLOP coverage | Full AI | Paired modeled AI | Mean width | Path nodes |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
     keys = ["num_nodes", "num_edges", "known_flops", "known_logical_io_bytes", "flop_model_coverage",
             "arithmetic_intensity", "modeled_arithmetic_intensity", "mean_level_width", "critical_path_nodes"]
     for stage, stats in report["stages"].items():
-        lines.append("| " + stage + " | " + " | ".join(fmt(stats[k]) for k in keys) + " |")
+        lines.append("| " + stage + " | " + " | ".join(_format_metric(stats[k]) for k in keys) + " |")
     lines += ["", "## Workload structure", "",
               "| Stage | Complete shapes | Shape coverage | Shape reuse | Matrix calls/shapes | Top-10% FLOP share | FLOP span | Work/span | Cast nodes | Cast I/O share |",
               "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
@@ -54,10 +65,9 @@ def write_reports(report, output_dir):
         values = [stats["num_shape_signatures"], stats["shape_signature_coverage"], stats["shape_signature_reuse_factor"],
                   f"{stats['matrix_call_count']}/{stats['matrix_shape_signature_count']}", stats["top10pct_node_flop_share"],
                   stats["weighted_flop_span"], stats["flop_work_over_span"], stats["cast_count"], stats["cast_logical_io_fraction"]]
-        lines.append("| " + stage + " | " + " | ".join(fmt(v) for v in values) + " |")
+        lines.append("| " + stage + " | " + " | ".join(_format_metric(v) for v in values) + " |")
     lines += ["", "AI units: scalar FLOP equivalents / logical byte. NA means unavailable.", "",
         "Execution metadata: " + json.dumps(report["execution"], ensure_ascii=False), "",
         "Integrity checks: " + json.dumps(report["integrity"]), "", "## Definitions and assumptions", ""]
     lines += ["- " + s for s in report["assumptions"]]
     (out / "metrics.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return out

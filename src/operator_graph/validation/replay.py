@@ -129,12 +129,14 @@ def validate_replay(data, report):
             sub.set_layer_tree(tree)
             ids = tree.operator_ids()
             expected = {n.op_id for n in sub.nodes}
+            layer_operator_count = tree.num_ops()
+            layer_total_flops = tree.total_flops(sub)
             checks[f"{stage}:layer_membership_coverage"] = ids == expected
-            checks[f"{stage}:layer_unique_count"] = tree.num_ops() == len(expected)
-            checks[f"{stage}:layer_flops_no_double_count"] = tree.total_flops(sub) == stats['estimated_flops']
+            checks[f"{stage}:layer_unique_count"] = layer_operator_count == len(expected)
+            checks[f"{stage}:layer_flops_no_double_count"] = layer_total_flops == stats['estimated_flops']
             original_labels = {n["op_id"]: n.get("layer_id", "") for n in source_nodes}
             stages[stage] = {
-                "unique_layer_operator_count": tree.num_ops(), "layer_total_flops": tree.total_flops(sub),
+                "unique_layer_operator_count": layer_operator_count, "layer_total_flops": layer_total_flops,
                 "top_level_label_counts": dict(Counter(c.layer_type for c in tree.children)),
                 "unchanged_node_label_count": sum(n.layer_id == original_labels[n.op_id] for n in sub.nodes),
                 "num_nodes": len(expected),

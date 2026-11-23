@@ -66,7 +66,7 @@ Graph construction covers top-level ONNX calls without expanding nested control 
 
 Current validation results:
 
-- 73 tests pass, covering construction, estimation, serialization, the CLI, and local HF weights through report generation.
+- 74 tests pass, covering construction, estimation, serialization, the CLI, and local HF weights through report generation.
 - Archived recomputation for seven models and fourteen forwards matches the paper, including 26,074 calls and key figure/table statistics.
 - Two graphs re-exported from local Qwen3-0.6B weights match the archives in configurations, dependencies, and estimates for all 4,840 calls. The other six models have not been re-exported from weights.
 

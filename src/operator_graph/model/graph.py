@@ -39,24 +39,25 @@ class ComputationGraph:
             child.parents.append(parent_id)
 
     def topo_sort(self):
-        for n in self.nodes:
-            if len(set(n.parents)) != len(n.parents) or len(set(n.children)) != len(n.children):
+        nodes = self.nodes
+        for node in nodes:
+            if len(set(node.parents)) != len(node.parents) or len(set(node.children)) != len(node.children):
                 raise ValueError('Duplicate dependency edge')
-            for direction, inverse in [('parents','children'),('children','parents')]:
-                for key in getattr(n, direction):
-                    other = self.get_node(key)
-                    if other is None or n.op_id not in getattr(other, inverse):
+            for direction, inverse in [('parents', 'children'), ('children', 'parents')]:
+                for neighbor_id in getattr(node, direction):
+                    neighbor = self.get_node(neighbor_id)
+                    if neighbor is None or node.op_id not in getattr(neighbor, inverse):
                         raise ValueError('Dangling or asymmetric dependency')
-        degree = {n.op_id: len(n.parents) for n in self.nodes}
-        queue = deque(k for k, value in degree.items() if value == 0)
+        in_degree = {node.op_id: len(node.parents) for node in nodes}
+        queue = deque(node_id for node_id, degree in in_degree.items() if degree == 0)
         order = []
         while queue:
-            n = self._nodes[queue.popleft()]
-            order.append(n)
-            for child in n.children:
-                degree[child] -= 1
-                if degree[child] == 0:
-                    queue.append(child)
+            node = self._nodes[queue.popleft()]
+            order.append(node)
+            for child_id in node.children:
+                in_degree[child_id] -= 1
+                if in_degree[child_id] == 0:
+                    queue.append(child_id)
         if len(order) != self.num_nodes:
             raise ValueError('Dependency cycle: no valid topological order')
         return order

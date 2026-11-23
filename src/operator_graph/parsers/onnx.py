@@ -1,8 +1,48 @@
 """Top-level ONNX calls, ordered operands and deduplicated dependencies."""
 from pathlib import Path
+from itertools import chain
 from operator_graph.model.graph import ComputationGraph
 from operator_graph.model.records import TensorMeta, OperatorNode
 from .op_names import ONNX_OP_MAP
+
+
+def _dtype_name(element_type):
+    from onnx import TensorProto
+
+    name = TensorProto.DataType.Name(element_type).lower()
+    return {'float': 'float32', 'double': 'float64'}.get(name, name)
+
+
+def _collect_tensor_metadata(graph):
+    tensors = {}
+    declarations = chain(graph.value_info, graph.input, graph.output)
+    for declaration in declarations:
+        tensor_type = declaration.type.tensor_type
+        if tensor_type.HasField('shape'):
+            shape = tuple(
+                dimension.dim_value if dimension.HasField('dim_value') else -1
+                for dimension in tensor_type.shape.dim
+            )
+        else:
+            shape = None
+        dtype = _dtype_name(tensor_type.elem_type) if tensor_type.elem_type else 'unknown'
+        tensors[declaration.name] = TensorMeta(shape, dtype)
+
+    for initializer in graph.initializer:
+        tensors[initializer.name] = TensorMeta(
+            tuple(initializer.dims), _dtype_name(initializer.data_type)
+        )
+    return tensors
+
+
+def _operand_metadata(names, tensors):
+    records = []
+    for name in names:
+        record = tensors.get(name)
+        if record is None:
+            record = TensorMeta(None, 'unknown')
+        records.append(record)
+    return records
 
 
 class OnnxParser:
@@ -17,60 +57,75 @@ class OnnxParser:
         self.source = Path(path)
         self.graph = onnx.load(str(self.source), load_external_data=False).graph
 
-    def parse(self, model_name=''):
+    def _call_record(self, index, node, tensors):
         import onnx
+
+        # Display aliases must not replace the raw type used by estimation.
+        display = ONNX_OP_MAP.get(node.op_type)
+        spec = self.registry.get(display) if display and display != 'UNKNOWN' else None
+        spec = spec or self.registry.lookup(node.op_type)
+        inputs = [name for name in node.input if name]
+        outputs = [name for name in node.output if name]
+        numeric_types = (
+            onnx.AttributeProto.INT, onnx.AttributeProto.INTS,
+            onnx.AttributeProto.FLOAT, onnx.AttributeProto.FLOATS,
+        )
+        attributes = {
+            attribute.name: onnx.helper.get_attribute_value(attribute)
+            for attribute in node.attribute if attribute.type in numeric_types
+        }
+        return OperatorNode(
+            op_id=f'onnx_op_{index:04d}', op_type=spec.name,
+            op_name=node.name or f'{node.op_type}_{index}',
+            category=spec.category, layer_id='root', raw_target=node.op_type,
+            input_tensors=_operand_metadata(inputs, tensors),
+            output_tensors=_operand_metadata(outputs, tensors),
+            metadata={
+                'onnx_op_type': node.op_type, 'domain': node.domain or '',
+                'source': 'onnx', 'onnx_index': index,
+                'input_names': inputs, 'output_names': outputs,
+                'input_slots': list(node.input), 'output_slots': list(node.output),
+                'onnx_attributes': attributes,
+            },
+        )
+
+    def parse(self, model_name=''):
+        import onnx  # Check the optional dependency before validating parser state.
+
         if self.graph is None:
             raise RuntimeError('Call load() before parse()')
-        tensor_map = {}
-        for v in [*self.graph.value_info, *self.graph.input, *self.graph.output]:
-            tt = v.type.tensor_type
-            shape = tuple(d.dim_value if d.HasField('dim_value') else -1 for d in tt.shape.dim) if tt.HasField('shape') else None
-            dtype = onnx.TensorProto.DataType.Name(tt.elem_type).lower() if tt.elem_type else 'unknown'
-            dtype = {'float':'float32','double':'float64'}.get(dtype, dtype)
-            tensor_map[v.name] = TensorMeta(shape, dtype)
-        for v in self.graph.initializer:
-            dtype = onnx.TensorProto.DataType.Name(v.data_type).lower()
-            tensor_map[v.name] = TensorMeta(tuple(v.dims), {'float':'float32','double':'float64'}.get(dtype, dtype))
-        g = ComputationGraph(model_name or self.source.stem)
-        producer = {}
-        for i, node in enumerate(self.graph.node):
-            # Registry labels are presentation metadata. Estimation uses raw ONNX type.
-            display = ONNX_OP_MAP.get(node.op_type)
-            spec = self.registry.get(display) if display and display != 'UNKNOWN' else None
-            spec = spec or self.registry.lookup(node.op_type)
-            ins, outs = [n for n in node.input if n], [n for n in node.output if n]
-            attrs = {a.name: onnx.helper.get_attribute_value(a) for a in node.attribute
-                     if a.type in (onnx.AttributeProto.INT, onnx.AttributeProto.INTS,
-                                   onnx.AttributeProto.FLOAT, onnx.AttributeProto.FLOATS)}
-            call = OperatorNode(op_id=f'onnx_op_{i:04d}', op_type=spec.name, op_name=node.name or f'{node.op_type}_{i}',
-                                category=spec.category, layer_id='root', raw_target=node.op_type,
-                                input_tensors=[tensor_map.get(n, TensorMeta(None, 'unknown')) for n in ins],
-                                output_tensors=[tensor_map.get(n, TensorMeta(None, 'unknown')) for n in outs],
-                                metadata={'onnx_op_type': node.op_type, 'domain': node.domain or '', 'source':'onnx',
-                                          'onnx_index': i, 'input_names': ins, 'output_names': outs,
-                                          'input_slots': list(node.input), 'output_slots': list(node.output),
-                                          'onnx_attributes': attrs})
-            g.add_node(call)
-            for name in outs:
-                if name in producer:
+
+        tensors = _collect_tensor_metadata(self.graph)
+        graph = ComputationGraph(model_name or self.source.stem)
+        producers = {}
+        for index, node in enumerate(self.graph.node):
+            call = self._call_record(index, node, tensors)
+            graph.add_node(call)
+            for name in call.metadata['output_names']:
+                if name in producers:
                     raise ValueError(f'Duplicate tensor producer: {name}')
-                producer[name] = call.op_id
-        for i, node in enumerate(self.graph.node):
+                producers[name] = call.op_id
+
+        for index, node in enumerate(self.graph.node):
             for name in node.input:
-                if name and name in producer:
-                    g.add_edge(producer[name], f'onnx_op_{i:04d}')
-        g.topo_sort()
-        g.execution = {'graph_kind': 'onnx_forward', 'source_onnx': str(self.source.resolve()),
-                       'subgraphs_expanded': False}
-        return g
+                if name and name in producers:
+                    graph.add_edge(producers[name], f'onnx_op_{index:04d}')
+        graph.topo_sort()
+        graph.execution = {
+            'graph_kind': 'onnx_forward', 'source_onnx': str(self.source.resolve()),
+            'subgraphs_expanded': False,
+        }
+        return graph
 
 
 def annotate_graph(graph):
     from operator_graph.estimation.rules import estimate_node_cost
-    for n in graph.nodes:
-        cost = estimate_node_cost(n.to_dict())
-        n.flops, n.memory_bytes, n.arith_intensity = cost['flops'], cost['logical_io_bytes'], cost['arithmetic_intensity']
-        n.metadata['static_cost'] = cost
+    for node in graph.nodes:
+        cost = estimate_node_cost(node.to_dict())
+        node.flops = cost['flops']
+        node.memory_bytes = cost['logical_io_bytes']
+        node.arith_intensity = cost['arithmetic_intensity']
+        node.metadata['static_cost'] = cost
     return graph
 
 

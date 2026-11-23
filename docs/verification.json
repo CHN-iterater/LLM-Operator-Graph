@@ -1,12 +1,12 @@
 {
   "date": "2026-11-23",
-  "tests_passed": 73,
+  "tests_passed": 74,
   "pytest_exit_code": 0,
   "pytest_warning_count": 5,
   "warning_note": "Upstream copyreg/Swig deprecations; local Anaconda torch tests use KMP_DUPLICATE_LIB_OK=TRUE. Non-fatal pyreadline3 shutdown messages occur on this installation; production code does not change environment or warning filters.",
   "core_only_wheel_install_verified": true,
   "core_environment_optional_dependencies_absent": true,
-  "wheel_sha256": "6a8c6e61079ac2b41aae97080b93621dd25a440eac1138f19091efac8223001f",
+  "wheel_sha256": "de6fcc03d3f67f96d3b46cefc13f05ad81be921597261791d35fb3a88404bf71",
   "wheel_members": 34,
   "original_git_status_unchanged": true,
   "new_repository_has_no_remote": true,
@@ -95,5 +95,17 @@
     "new_report_language_regression_passed": true,
     "source_provenance_values_preserved": true,
     "core_only_installed_reports_verified": true
+  },
+  "readability_review": {
+    "baseline_commit": "3aff052df6d89efb82ec89b518a7d81df8227a1d",
+    "baseline_tests": 73,
+    "final_tests": 74,
+    "report_files_byte_identical": 15,
+    "qwen_retained_onnx_calls_unchanged": 4840,
+    "paper_audit_passed": true,
+    "estimation_rule_source_byte_identical": true,
+    "optional_dependency_error_order_preserved": true,
+    "core_only_wheel_verified": true,
+    "fresh_seven_large_model_exports_rerun": false
   }
 }

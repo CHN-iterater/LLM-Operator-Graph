@@ -17,16 +17,18 @@ def graph_to_dict(graph, registry=None, include_metadata=True):
     def total(key):
         values = [n[key] for n in nodes]
         return sum(values) if all(v is not None for v in values) else None
+    layers = graph.get_layers()
+    layer_tree = graph.get_layer_tree()
     result = {'schema_version': SCHEMA_VERSION, 'created_at': datetime.now(timezone.utc).isoformat(),
               'model_name': graph.model_name,
               'prompt': {'text': graph.prompt_text, 'tokens': graph.prompt_tokens},
               'execution': deepcopy(graph.execution),
-              'summary': {'num_nodes': len(nodes), 'num_layers': len(graph.get_layers()),
-                          'layers': graph.get_layers(), 'operator_counts': graph.get_operator_counts(),
+              'summary': {'num_nodes': len(nodes), 'num_layers': len(layers),
+                          'layers': layers, 'operator_counts': graph.get_operator_counts(),
                           'total_flops': total('flops'), 'total_memory_bytes': total('memory_bytes'),
                           'known_flops': sum(n['flops'] for n in nodes if n['flops'] is not None),
                           'known_memory_bytes': sum(n['memory_bytes'] for n in nodes if n['memory_bytes'] is not None)},
-              'layer_tree': graph.get_layer_tree().to_dict() if graph.get_layer_tree() else None,
+              'layer_tree': layer_tree.to_dict() if layer_tree else None,
               'nodes': nodes}
     if registry is not None:
         result['registry_info'] = {'num_operator_types': registry.num_operators,
