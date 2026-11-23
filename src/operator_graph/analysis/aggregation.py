@@ -19,5 +19,3 @@ def _aggregate(rows):
             "arithmetic_intensity": total_f/total_b if total_f is not None and total_b else None,
             "modeled_arithmetic_intensity": sum(r["flops"] for r in paired)/pair_b if pair_b else None,
             "ai_matched_node_count": len(paired)}
-
-

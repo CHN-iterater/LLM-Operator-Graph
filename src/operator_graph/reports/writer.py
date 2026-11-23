@@ -61,5 +61,3 @@ def write_reports(report, output_dir):
     lines += ["- " + s for s in report["assumptions"]]
     (out / "metrics.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return out
-
-

@@ -107,5 +107,3 @@ def test_complete_graph_ai_is_ratio_of_sums():
     b = node("MatMul", [tensor((4, 8)), tensor((8, 16))], [tensor((4, 16))], op_id="b")
     r = analyze_graph({"nodes": [a, b]})["stages"]["prefill"]
     assert r["arithmetic_intensity"] == pytest.approx((4+1024)/(24+448))
-
-

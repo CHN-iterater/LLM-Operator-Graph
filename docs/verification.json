@@ -6,7 +6,7 @@
   "warning_note": "Upstream copyreg/Swig deprecations; local Anaconda torch tests use KMP_DUPLICATE_LIB_OK=TRUE. Non-fatal pyreadline3 shutdown messages occur on this installation; production code does not change environment or warning filters.",
   "core_only_wheel_install_verified": true,
   "core_environment_optional_dependencies_absent": true,
-  "wheel_sha256": "0f5604a9ae699cb26a1d9f1764488906a801d4a4e74da8e8beb76e31e5a42827",
+  "wheel_sha256": "b1893342c040ad0ba2fa4dbd97fe73b21a7ee603a1487e6e3706ac4ac1130172",
   "wheel_members": 34,
   "original_git_status_unchanged": true,
   "new_repository_has_no_remote": true,
@@ -86,5 +86,6 @@
     "runtime_energy_measured": false
   },
   "python_version": "3.13.9",
-  "hf_local_weights_to_complete_reports_tested": true
+  "hf_local_weights_to_complete_reports_tested": true,
+  "final_eof_formatting_ast_unchanged": true
 }

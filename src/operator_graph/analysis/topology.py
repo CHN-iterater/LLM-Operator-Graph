@@ -47,5 +47,3 @@ def _topology(nodes, malformed=False, cost_rows=()):
             "fanout_node_fraction": sum(len(cs) > 1 for cs in children.values())/len(nodes) if valid and nodes else None,
             "max_fanout": max(map(len, children.values())) if valid and nodes else None,
             "level_widths": dict(sorted(widths.items()))}
-
-

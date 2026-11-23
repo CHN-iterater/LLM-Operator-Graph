@@ -89,5 +89,3 @@ def analyze_graph(data):
                 "One-producer/one-consumer edges and fanout describe dependencies; they do not establish fusibility or cache reuse."],
             "stages": stages, "operators": operator_rows, "layers": layer_rows, "nodes": cost_rows,
             "shape_signatures": shape_rows, "cast_transitions": cast_rows, "output_dtypes": dtype_rows}
-
-

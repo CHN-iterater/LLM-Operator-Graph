@@ -172,5 +172,3 @@ def estimate_node_cost(node):
                       logical_io_bytes=None, io_assumption='operator domain has no registered access rule',
                       arithmetic_intensity=None)
     return result
-
-

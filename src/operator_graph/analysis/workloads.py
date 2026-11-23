@@ -52,5 +52,3 @@ def _workloads(nodes, rows):
              "top10pct_node_count": k, "top10pct_node_flop_share": share("flops"),
              "top10pct_node_io_share": share("logical_io_bytes")}
     return stats, result
-
-

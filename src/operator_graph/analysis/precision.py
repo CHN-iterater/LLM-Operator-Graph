@@ -35,5 +35,3 @@ def _precision(nodes, rows, stage_bytes):
             "cast_logical_io_fraction": cast_bytes/stage_bytes if cast_bytes is not None and stage_bytes else None,
             "floating_output_payload_bytes": float_bytes,
             "fp32_floating_output_payload_fraction": fp32_bytes/float_bytes if float_bytes else None}, cast_rows, dtype_rows
-
-
