@@ -52,8 +52,68 @@ static-v2.0的算术及逻辑访问公式保持。上述修正集中于输入范
 - `test_export_contract.py`：真实小型PyTorch模块导出，以及失败/成功状态恢复、外部文件清理、默认本地加载、输入条件及报告自动生成。
 - `test_paper_contract.py`：论文核心语义及迁移修复的回归用例。
 - 无依赖虚拟环境安装wheel后，已有JSON的analyze和validate命令均通过，环境未安装torch、onnx或transformers。
+- 后续独立核查已从本地Qwen3-0.6B完整HF权重重新执行两次前向：完整prompt为7 tokens，独立探针为1 token，各2420调用。全部4840条调用的原始类型、有序输入输出形状/dtype、父子依赖，以及估算、公式、状态和全部阶段统计均与论文归档一致。旧探针ID去掉dc_前缀后对齐。
+- 七模型归档核查进一步覆盖表2的42个数值单元格、表3的28个单元格、图4的50个计数、936个配置分组及Mistral的32个重复块，均与论文一致。原工作区的`analysis/当前代码与论文结果复核_2026-11-23/`保存可重复核查脚本及结果。
 
-此处不声称七个大模型均已重新从权重导出。七模型核查使用原归档JSON；权重加载端到端测试使用本地生成的小型HF模型。实际模型须能被其当前依赖版本加载并导出为ONNX；任意自定义模型兼容性不由上述小模型测试保证。
+本轮权重端到端核查覆盖本地生成的小型HF模型及实际Qwen3-0.6B权重。其余六模型未重新从权重导出，仍采用原归档JSON核查。模型需能被当前依赖版本加载并导出为ONNX；当前验证范围不涵盖任意自定义模型。
+
+## 使用补充
+
+### Python接口
+
+```python
+from operator_graph import parse_onnx, graph_to_json
+from operator_graph.analysis.engine import analyze_graph
+from operator_graph.reports.writer import write_reports
+
+graph = parse_onnx("model.onnx", model_name="example")
+graph_to_json(graph, output_path="output/graph.json")
+write_reports(analyze_graph(graph.to_dict()), "output/reports")
+```
+
+从模型权重运行完整流程：
+
+```python
+from operator_graph.exporters import export_prompt
+
+graphs = export_prompt("path/to/local-hf-model", "What's the capital of France?", "output/model")
+```
+
+### 无权重ONNX示例
+
+安装`.[onnx]`后，可生成三调用分叉汇合图：
+
+```text
+python examples/make_branch_graph.py output/branch.onnx
+operator-graph parse output/branch.onnx --output output/graph.json
+operator-graph analyze output/graph.json --output output/reports
+operator-graph validate output/graph.json
+```
+
+### 旧JSON与本地归档回归
+
+新输出使用schema 2.0，兼容读取旧schema 1.0。旧JSON的prefill/decode标签保持原样；只有确认其来自两个独立无缓存前向时，才使用`analyze --decode-is-probe`声明探针语义。
+
+```text
+python tools/verify_migration.py <原论文工作区> --output output/migration.json
+```
+
+此回归工具需要原工作区的七份归档、论文CSV及旧实现作参照。运行新项目的常规构图和分析功能不依赖原仓库。
+
+### 包目录
+
+```text
+src/operator_graph/
+  model/          # 图、调用、张量、显示注册表
+  parsers/        # ONNX元数据与两轮构图
+  exporters/      # PyTorch导出及HF模型输入适配
+  estimation/     # 静态计量规则
+  analysis/       # 汇总、拓扑、配置和精度统计
+  serialization/  # 版本化JSON读写
+  reports/        # 报告与批量分析
+  validation/     # 完整性与重放核查
+  extensions/     # 可选层划分
+```
 
 ## 环境说明
 
