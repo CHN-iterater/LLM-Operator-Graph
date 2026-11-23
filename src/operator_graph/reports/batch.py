@@ -65,44 +65,44 @@ def main(argv=None):
                ("stage", "signature_id", "signature_complete", "num_nodes", "model_names", "num_models"))
     def fmt(x):
         return "NA" if x is None else f"{x:.4f}" if isinstance(x, float) else str(x)
-    summary = ["# 模型定量指标汇总", "",
-        f"计量版本：{COST_MODEL_VERSION}。AI 是 FLOPs / 逻辑读写字节；不是实测 DRAM 计算强度。",
-        "覆盖率包含精确、近似和已知零计数，不代表图解析准确率。decode 标签的含义见各报告 execution 字段。", "",
-        "| 模型 | 原始阶段标签 | 节点 | 已建模 FLOPs | 逻辑字节 | FLOP 规则覆盖率 | 完整 AI | 平均层宽 | 最长路径节点数 |",
+    summary = ["# Model workload summary", "",
+        f"Estimation model: {COST_MODEL_VERSION}. AI is FLOP equivalents per logical byte, not measured DRAM intensity.",
+        "Coverage includes convention-based, approximate and known-zero estimates, not graph extraction accuracy. Consult execution metadata for legacy decode semantics.", "",
+        "| Model | Original stage label | Calls | Known work | Known logical bytes | Work-rule coverage | Complete AI | Mean level width | Path calls |",
         "|---|---|---:|---:|---:|---:|---:|---:|---:|"]
     keys = ["num_nodes", "known_flops", "known_logical_io_bytes", "flop_model_coverage", "arithmetic_intensity", "mean_level_width", "critical_path_nodes"]
     for row in all_rows:
         summary.append("| " + row["model_name"] + " | " + row["stage"] + " | " + " | ".join(fmt(row[k]) for k in keys) + " |")
-    summary += ["", "## 工作负载与依赖结构", "",
-                "形状复用倍数 = 形状/dtype 完整的节点数 / 完整形状配置数；只表示几何配置复用。",
-                "Top 10% 按 FLOPs 选取 ceil(0.1×节点数) 个节点；Work/span 为总 FLOPs / 最长依赖路径 FLOPs。", "",
-                "| 模型 | 原始阶段标签 | 完整形状配置 | 形状复用倍数 | 矩阵调用/配置 | Top 10% FLOP 占比 | Work/span | Cast 节点 | Cast 逻辑字节占比 |",
+    summary += ["", "## Workloads and dependencies", "",
+                "Shape reuse is the number of calls with complete shape/dtype records divided by the number of complete configurations. It describes geometric configuration reuse.",
+                "Top-10% shares select ceil(0.1 * call count) calls ranked by estimated work. Work/span is total estimated work divided by the maximum path work.", "",
+                "| Model | Original stage label | Complete configurations | Shape reuse | Matrix calls/configurations | Top-10% work share | Work/span | Cast calls | Cast logical-byte share |",
                 "|---|---|---:|---:|---:|---:|---:|---:|---:|"]
     for row in all_rows:
         values = [row["num_shape_signatures"], row["shape_signature_reuse_factor"],
                   f"{row['matrix_call_count']}/{row['matrix_shape_signature_count']}", row["top10pct_node_flop_share"],
                   row["flop_work_over_span"], row["cast_count"], row["cast_logical_io_fraction"]]
         summary.append("| " + row["model_name"] + " | " + row["stage"] + " | " + " | ".join(fmt(v) for v in values) + " |")
-    summary += ["", "## 跨模型形状配置目录", "",
-                "按原始阶段标签分别合并相同签名，不将完整 prompt 与单 token 探针混成一次执行。", "",
-                "| 原始阶段标签 | 完整配置实例 | 完整配置数 | 矩阵实例 | 矩阵配置数 |", "|---|---:|---:|---:|---:|"]
+    summary += ["", "## Cross-model configuration catalog", "",
+                "Pool matching signatures separately by original stage label. Full prompts and single-token probes remain separate conditions.", "",
+                "| Original stage label | Complete-config calls | Complete configurations | Matrix calls | Matrix configurations |", "|---|---:|---:|---:|---:|"]
     for stage in sorted({r["stage"] for r in all_rows}):
         groups = [g for g in catalog_rows if g["stage"] == stage and g["signature_complete"]]
         matrices = [g for g in groups if str(g["raw_op_type"]).upper() in {"MATMUL", "GEMM", "BMM", "LINEAR"}]
         summary.append(f"| {stage} | {sum(g['num_nodes'] for g in groups)} | {len(groups)} | {sum(g['num_nodes'] for g in matrices)} | {len(matrices)} |")
-    summary += ["", "明细见 shape_signature_catalog.csv；配置不含属性、布局和常量取值，不能直接作为语义等价或性能等价证明。",
-                "精度载荷、代价集中度与依赖统计见各模型 metrics.json、stage_metrics.csv 及三个新增明细 CSV。"]
+    summary += ["", "See shape_signature_catalog.csv. Descriptors exclude attributes, layouts and constant values and do not establish semantic or performance equivalence.",
+                "See each model's metrics.json, stage_metrics.csv and detail CSVs for precision payloads, workload concentration and dependency statistics."]
     (args.output / "summary.md").write_text("\n".join(summary) + "\n", encoding="utf-8")
     if validations:
         (args.output / "validation_summary.json").write_text(json.dumps(validations, ensure_ascii=False, indent=2), encoding="utf-8")
-        lines = ["# 图后端离线验证", "",
-                 "输入为既有 graph.json，不加载权重。检查结构读写、DAG、计量聚合和层划分代码重放。",
-                 "模型加载、PyTorch→ONNX 导出、原始 ONNX 忠实性、数值推理及硬件测量未在本次验证中覆盖。", "",
-                 "| 模型 | 检查通过数 | 检查总数 | 结果 |", "|---|---:|---:|---|"]
+        lines = ["# Offline graph validation", "",
+                 "Checks use archived graph JSON without loading model weights: structural serialization, DAG integrity, estimate aggregation and layer-code replay.",
+                 "These checks do not exercise model loading, PyTorch-to-ONNX export, source ONNX fidelity, numerical inference or hardware measurements.", "",
+                 "| Model | Passed checks | Total checks | Result |", "|---|---:|---:|---|"]
         for v in validations:
             lines.append(f"| {v['model_name']} | {sum(v['checks'].values())} | {len(v['checks'])} | {'PASS' if v['passed'] else 'FAIL'} |")
-        lines += ["", "层标签重放不等于边界准确率；source_file_unchanged 与 SHA-256 记录保证本次分析未改写输入文件。",
-                  "各项检查及每阶段层统计见 validation_summary.json，定量结果见 summary.md / model_metrics.csv。"]
+        lines += ["", "Layer-code replay is not a layer-boundary accuracy measure. The source_file_unchanged check and SHA-256 records verify that the analysis preserved its inputs.",
+                  "See validation_summary.json for individual checks and per-stage layer statistics, and summary.md / model_metrics.csv for numerical results."]
         (args.output / "validation_summary.md").write_text("\n".join(lines)+"\n", encoding="utf-8")
     print(f"Aggregate table: {args.output / 'model_metrics.csv'}")
     return 1 if any(not v["passed"] for v in validations) else 0

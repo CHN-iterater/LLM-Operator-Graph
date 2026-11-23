@@ -1,12 +1,12 @@
 {
   "date": "2026-11-23",
-  "tests_passed": 72,
+  "tests_passed": 73,
   "pytest_exit_code": 0,
   "pytest_warning_count": 5,
   "warning_note": "Upstream copyreg/Swig deprecations; local Anaconda torch tests use KMP_DUPLICATE_LIB_OK=TRUE. Non-fatal pyreadline3 shutdown messages occur on this installation; production code does not change environment or warning filters.",
   "core_only_wheel_install_verified": true,
   "core_environment_optional_dependencies_absent": true,
-  "wheel_sha256": "b1893342c040ad0ba2fa4dbd97fe73b21a7ee603a1487e6e3706ac4ac1130172",
+  "wheel_sha256": "6a8c6e61079ac2b41aae97080b93621dd25a440eac1138f19091efac8223001f",
   "wheel_members": 34,
   "original_git_status_unchanged": true,
   "new_repository_has_no_remote": true,
@@ -87,5 +87,13 @@
   },
   "python_version": "3.13.9",
   "hf_local_weights_to_complete_reports_tested": true,
-  "final_eof_formatting_ast_unchanged": true
+  "final_eof_formatting_ast_unchanged": true,
+  "english_localization": {
+    "comments_docstrings_documentation": "English",
+    "generated_report_prose": "English",
+    "han_literal_matches_in_scanned_source_docs": 0,
+    "new_report_language_regression_passed": true,
+    "source_provenance_values_preserved": true,
+    "core_only_installed_reports_verified": true
+  }
 }

@@ -1,31 +1,31 @@
 # OperatorGraph
 
-从本地 Hugging Face 模型权重或 ONNX 构建调用级算子图，保存张量配置、依赖及静态估算依据，生成 JSON、CSV 和 Markdown 分析报告。
+Build call-level operator graphs from local Hugging Face weights or ONNX. Preserve tensor configurations, dependencies, and static estimation rules, and produce JSON, CSV, and Markdown reports.
 
-## 安装与快速开始
+## Install and quick start
 
-需要 Python ≥3.10。以下命令均在项目根目录运行。
+Requires Python >=3.10. Run the following commands from the project root.
 
 ```shell
 python -m pip install ".[export]"
 operator-graph export "D:\Models\YourModel" --prompt "What's the capital of France?" --output output/your-model
 ```
 
-模型目录应包含权重、`config.json` 和对应 tokenizer 文件。一次运行完成模型加载、分词、ONNX 导出、图 JSON 保存及完整报告生成。部分模型还需要各自的 tokenizer 依赖。
+The model directory must contain weights, `config.json`, and tokenizer files. One run loads the model, tokenizes the prompt, exports ONNX, saves graph JSON, and generates complete reports. Some models require additional tokenizer dependencies.
 
-程序使用 token IDs，分别执行完整 prompt（`full_prompt`）和独立单 token 探针（`single_token_probe`）。两次前向均采用 eval 模式并关闭 KV cache；探针只接收原 prompt 的最后一个 token，不带历史 key/value，因此不能作为 cached decode。
+The program uses token IDs for two independent forwards: the full prompt (`full_prompt`) and a single-token probe (`single_token_probe`). Both run in eval mode with KV cache disabled. The probe receives only the original prompt's last token, with no past key/value states; it does not represent cached decoding.
 
-默认加载本地文件。联网获取模型用 `--allow-download`，执行模型自定义代码用 `--trust-remote-code`。完整参数见 `operator-graph export --help`。
+Loading uses local files by default. Use `--allow-download` to download model files and `--trust-remote-code` to execute custom model code. See `operator-graph export --help` for all options.
 
-## 其他使用入口
+## Other entry points
 
-按输入选择依赖：
+Choose dependencies for your input:
 
-| 用途 | 安装命令 |
+| Purpose | Install command |
 |---|---|
-| 已有 JSON 的离线分析与核查 | `python -m pip install .` |
-| 已有 ONNX 的构图 | `python -m pip install ".[onnx]"` |
-| 模型权重到图及完整报告 | `python -m pip install ".[export]"` |
+| Offline analysis and validation of existing JSON | `python -m pip install .` |
+| Graph construction from existing ONNX | `python -m pip install ".[onnx]"` |
+| Model weights to graphs and complete reports | `python -m pip install ".[export]"` |
 
 ```shell
 operator-graph parse model.onnx --output output/graph.json
@@ -33,11 +33,11 @@ operator-graph analyze examples/graph.json --output output/reports
 operator-graph validate examples/graph.json
 ```
 
-`analyze` 也接受包含 `graph.json` 或 `*_graph.json` 的目录。离线 JSON 分析无需模型权重、GPU、ONNX 或 PyTorch。可用 `python -m operator_graph` 代替 `operator-graph`。
+`analyze` also accepts directories containing `graph.json` or `*_graph.json`. Offline JSON analysis needs no model weights, GPU, ONNX, or PyTorch. You can use `python -m operator_graph` in place of `operator-graph`.
 
-## 输出与计量说明
+## Outputs and estimation conventions
 
-模型权重入口的主要输出：
+Main outputs from the model-weights entry point:
 
 ```text
 output/your-model/
@@ -49,38 +49,38 @@ output/your-model/
   reports/
     summary.md / model_metrics.csv / shape_signature_catalog.csv
     validation_summary.json / validation_summary.md
-    <每种输入条件的独立目录>/
+    <separate directory for each input condition>/
       metrics.json / metrics.md
       node_metrics.csv / operator_metrics.csv / layer_metrics.csv
       stage_metrics.csv / level_widths.csv
       shape_signature_metrics.csv / cast_metrics.csv / dtype_metrics.csv
 ```
 
-较大模型还可能产生 ONNX 外部权重文件；图中会记录保留文件及哈希。调用记录保留原始类型、有序输入输出形状和 dtype，并区分重复操作数使用与去重后的调用依赖边。
+Large models may also produce ONNX external-weight files; graphs record retained files and hashes. Call records preserve raw operator types and ordered input/output shapes and dtypes, distinguishing repeated operand uses from deduplicated call-dependency edges.
 
-运算量、逻辑数据访问量和 AI 使用 `static-v2.0` 声明规则，保留公式、假设与可用性状态。`null`/`NA` 表示估算不可用，完整总量与已知部分总量分别报告。这些数值属于静态估算，不是实测能耗或设备流量。
+Arithmetic work, logical data access, and arithmetic intensity (AI) follow the declared `static-v2.0` rules, with formulas, assumptions, and availability states retained. `null`/`NA` means unavailable; complete totals and known-part totals are reported separately. These are static estimates, not measured energy consumption or device traffic.
 
-构图只处理 ONNX 顶层调用，不展开嵌套控制流。拓扑宽度描述逻辑依赖；层标签属于启发式分析。
+Graph construction covers top-level ONNX calls without expanding nested control flow. Topological width describes logical dependencies; layer labels are heuristic.
 
-## 验证与详细文档
+## Validation and detailed documentation
 
-当前核查结果：
+Current validation results:
 
-- 72项测试通过，覆盖构图、估算、读写、CLI及本地 HF 权重到报告的流程。
-- 七模型十四次前向的归档复算与论文一致，核对26,074条调用及论文关键图表统计。
-- Qwen3-0.6B从本地权重重新导出的两张图，共4,840条调用的配置、依赖及估算与归档一致；其余六模型尚未从权重重新导出。
+- 73 tests pass, covering construction, estimation, serialization, the CLI, and local HF weights through report generation.
+- Archived recomputation for seven models and fourteen forwards matches the paper, including 26,074 calls and key figure/table statistics.
+- Two graphs re-exported from local Qwen3-0.6B weights match the archives in configurations, dependencies, and estimates for all 4,840 calls. The other six models have not been re-exported from weights.
 
-运行完整测试（含导出依赖）：
+Run the full suite, including export dependencies:
 
 ```shell
 python -m pip install ".[test,export]"
 python -m pytest
 ```
 
-详细信息：
+Further details:
 
-- [使用补充、项目结构与迁移核查](docs/migration_report.md)
-- [论文与代码对照](docs/paper_alignment.md)
-- [测试与安装验证记录](docs/verification.json)
+- [Usage notes, project structure, and migration validation](docs/migration_report.md)
+- [Paper-to-code alignment](docs/paper_alignment.md)
+- [Test and installation verification record](docs/verification.json)
 
-代码迁移自 [LLM-Graph-Parser](https://github.com/CHN-iterater/LLM-Graph-Parser) 的研究工作树，服务于论文 *Operator Graph Construction for Large Language Model Inference*。
+Migrated from the research working tree of [LLM-Graph-Parser](https://github.com/CHN-iterater/LLM-Graph-Parser) for the paper *Operator Graph Construction for Large Language Model Inference*.

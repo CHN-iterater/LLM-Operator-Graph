@@ -1,39 +1,41 @@
-# 当前论文与新实现对照
+# Paper-to-code alignment
 
-依据：2026-11-21精简后的英文论文。迁移不修改论文或其归档数据。
+Reference: the English manuscript shortened on 2026-11-21. This migration does not modify the paper or its archived data.
 
-| 论文要求 | 新实现 | 与旧代码相比 |
+Implementation paths below are relative to `src/operator_graph/`.
+
+| Paper requirement | New implementation | Change from legacy code |
 |---|---|---|
-| 元数据收集、调用记录、依赖连接、属性派生为主线 | model/parsers/estimation分离，CLI编排 | 移出混合入口和大型图类中的报告/阶段推断 |
-| 顶层ONNX调用及原始类型 | raw_target、metadata.onnx_op_type、domain独立保存 | 显示名称不作为覆盖原始类型的依据 |
-| 有序操作数与依赖边粒度不同 | 原始input_slots保留空可选位置，input_names及tensor列表保留非空使用顺序 | 重复输入不丢失；依赖边只按调用对去重 |
-| 公式、假设、可用性和汇总依据 | metadata.static_cost及离线逐调用报告 | 保留static-v2.0公式；旧utils不作为第二套有效规则 |
-| 已知零与不可用不同 | 节点数值使用None；汇总分别给完整与已知部分 | 不再为未知填零。旧schema中的显式static_cost状态优先于旧零占位 |
-| 完整性/可用性不是构图准确率 | validation报告保留核查范围 | 未把replay、小图或归档一致性改称独立准确率 |
-| 两个独立无缓存输入 | 新export适配使用准确的full_prompt/single_token_probe条件 | 旧标签仅兼容读取，不推断成cached decode |
-| 逻辑访问是声明规则的静态估算 | dtype载荷、视图别名、物化、Gather、重复使用规则保持 | 没有把memory_bytes列说成峰值显存或DRAM实测流量 |
-| AI为完整总量之比 | 保留完整性和非零分母要求 | 不做节点AI平均，不给特定GPU实际瓶颈判断 |
-| 拓扑层级与逻辑路径 | 环、悬空依赖显式报错；加权路径保留零 | 不再在排序失败时返回插入顺序，不再把零权重抬到1 |
+| Metadata collection, call records, dependency linking, and derived attributes | Separate model, parser, and estimation modules, orchestrated by the CLI | Reporting and stage inference moved out of mixed entry points and the large graph class |
+| Top-level ONNX calls and raw operator types | `raw_target`, `metadata.onnx_op_type`, and `domain` stored separately | Display names do not override raw types |
+| Ordered operands and dependency edges have different granularity | Raw `input_slots` retain empty optional positions; `input_names` and tensor lists retain nonempty uses in order | Repeated inputs are preserved; dependency edges are deduplicated only by call pair |
+| Formulas, assumptions, availability, and aggregation basis | `metadata.static_cost` and offline per-call reports | `static-v2.0` formulas retained; legacy `utils` is not a second active rule source |
+| Known zero differs from unavailable | Node values use `None`; aggregation reports complete and known-part totals separately | Unavailable values are no longer filled with zero; explicit legacy `static_cost` states override zero placeholders |
+| Completeness and availability are not construction accuracy | Validation reports state their scope | Replay, small-graph checks, and archive agreement are not labeled independent accuracy measurements |
+| Two independent cache-disabled inputs | Export uses the precise `full_prompt`/`single_token_probe` conditions | Legacy labels remain readable and are not interpreted as cached decoding |
+| Logical access is a static estimate under declared rules | Dtype payload, view aliasing, materialization, Gather, and repeated-use rules retained | `memory_bytes` is not described as peak GPU memory or measured DRAM traffic |
+| AI is the ratio of complete totals | Completeness and a nonzero denominator remain required | Node AI values are not averaged; no actual bottleneck classification is made for a specific GPU |
+| Topological levels and logical paths | Cycles and dangling dependencies raise explicit errors; weighted paths retain zero | Failed sorting no longer returns insertion order; zero weights are no longer raised to one |
 
-## 有意增加的健壮性与兼容处理
+## Added robustness and compatibility handling
 
-- 区分未知rank、标量和零尺寸；解析器保留真实零维度，不把它自动改成未知。论文实验范围仍为正静态维度或标量，代码小图覆盖不改变既有论文实验范围。
-- 按遍历索引确定消费者，避免通过输出反查时跳过没有非空输出的节点。
-- 非标准自定义domain不因名称恰好为Mul或Reshape就继承标准算子计量规则。默认已支持标准domain及无domain的旧记录；其他domain需要显式实现规则。命名空间保护不修改本语料的数值公式，七份归档均来自标准domain。
-- schema 2.0读写边界拒绝无效依赖；诊断已有损坏JSON仍可直接把字典交给analyze_graph。
-- 有不可用估算时，层汇总核查比较完整总量，而非把None与已知部分相比较。
-- 旧tensor记录省略device等可选默认值时按语义归一，避免无关默认字段造成假失败。
+- Unknown rank, scalars, and zero dimensions remain distinct. The parser preserves true zero dimensions rather than converting them to unknown values. The paper's experiments still cover positive static dimensions or scalars; small code tests do not expand that experimental scope.
+- Consumers are identified by traversal index, avoiding omission of nodes with no nonempty output when looking up nodes by output.
+- Nonstandard custom domains do not inherit standard estimation rules merely because an operator is named `Mul` or `Reshape`. Standard domains and legacy records without a domain are supported by default; other domains need explicit rule implementations. This namespace guard does not change the corpus formulas: all seven archives use standard domains.
+- Schema 2.0 reading and writing reject invalid dependencies. To diagnose existing damaged JSON, dictionaries can still be passed directly to `analyze_graph`.
+- When estimates are unavailable, layer-aggregation checks compare complete totals rather than comparing `None` with a known-part total.
+- Omitted optional defaults such as `device` in legacy tensor records are normalized semantically, avoiding failures caused by irrelevant default-field differences.
 
-## 暂不迁入默认核心的功能
+## Features outside the default core
 
-| 原模块 | 去向 |
+| Original module or feature | Disposition |
 |---|---|
-| utils两个calculator | 历史接口留在原仓库；新项目仅有统一规则源 |
-| PhaseSplitter、旧KV分析及Roofline报告 | 不以输入尺寸启发式推断真实阶段；必要扩展另行设计 |
-| FX OperatorParser、OperatorHook、TensorRecorder | 后续可选后端，首版本ONNX主路径独立可用 |
-| ModuleParser、ModuleHook | 模块级分析扩展，不承担调用级ONNX构图 |
-| hardware参数与旧profiling接口 | 下游项目或后续可选扩展 |
-| 文本生成及回答展示 | 不属于论文两次前向构图所需步骤，默认CLI不运行生成 |
-| LayerPartitioner | 保留为显式扩展；标签是启发式结果，不作为构图准确率证据 |
+| Two calculators in `utils` | Historical interfaces remain in the original repository; the new project has one rule source |
+| `PhaseSplitter`, legacy KV analysis, and Roofline reports | Actual execution phases are not inferred from input-size heuristics; extensions require separate design |
+| FX `OperatorParser`, `OperatorHook`, `TensorRecorder` | Potential optional backends; the initial ONNX workflow works independently |
+| `ModuleParser`, `ModuleHook` | Module-level analysis extensions, separate from call-level ONNX construction |
+| Hardware parameters and legacy profiling interfaces | Downstream projects or future optional extensions |
+| Text generation and answer display | Not required for constructing graphs from the paper's two forwards; the default CLI does not generate text |
+| `LayerPartitioner` | Retained as an explicit extension; heuristic labels are not evidence of construction accuracy |
 
-当前仍未声称支持缓存解码实验、嵌套子图展开、数值推理等价验证或实测能耗改进。当前模型导出适配可用性应以实际导出测试及所用软件版本为准。
+The current project makes no claim to cover cached-decoding experiments, nested-subgraph expansion, numerical inference-equivalence validation, or measured energy-consumption improvements. Model export support is bounded by actual export tests and the software versions used.

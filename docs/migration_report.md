@@ -1,65 +1,68 @@
-# 本地迁移与论文对齐核查
+# Local migration and paper alignment
 
-日期：2026-11-23。新项目目录OperatorGraph，包名operator_graph。新Git仓库独立建立，未配置远端，未推送GitHub。
+Date: 2026-11-23. The project directory is `OperatorGraph` and the Python package is `operator_graph`. A separate local Git repository has been initialized, with no remote configured and no GitHub push.
 
-## 已迁移的完整工作流
+## Migrated workflows
 
-1. **本地Hugging Face模型目录 → JSON与完整报告**：加载标准权重/config/tokenizer，分词，分别导出完整prompt和独立单token探针，保存ONNX、外部权重来源哈希、图JSON、原模型配置，再自动生成两种条件的逐调用/类型/层标签/配置/精度/拓扑报告及联合汇总、验证结果。
-2. 已有ONNX → 调用级图JSON。
-3. 已有新旧JSON → 静态估算及完整离线分析报告。
-4. JSON → 完整性、读写、聚合、独立路径参照和可选层划分重放核查。
+1. **Local Hugging Face model directory to JSON and complete reports**: load standard weights/config/tokenizer files, tokenize, and separately export the full prompt and independent single-token probe. Save ONNX, external-weight provenance hashes, graph JSON, and the original model configuration. Automatically produce per-call, operator-type, layer-label, configuration, precision, and topology reports for both conditions, plus combined summaries and validation results.
+2. Existing ONNX to call-level graph JSON.
+3. Existing new or legacy JSON to static estimates and complete offline reports.
+4. JSON to completeness, serialization, aggregation, independent path-reference, and optional layer-partition replay checks.
 
-命令与输出目录见根README。export是权重到报告的端到端入口，默认不执行文本生成，也不下载模型。
+See the [README](../README.md) for commands and output directories. `export` is the end-to-end weights-to-reports entry point. It does not generate text or download models by default.
 
-## 结构迁移
+## Code organization
 
-| 原实现 | 新位置 |
+Paths in the new-location column are relative to `src/operator_graph/`.
+
+| Original implementation | New location |
 |---|---|
-| run.py及包入口中的导出编排 | exporters/torch.py、exporters/prompt.py、cli.py |
-| core/operator_node.py与基础图操作 | model/records.py、model/graph.py |
-| core/operator_registry.py | model/registry.py（历史category字符串仅为显示兼容标签，不表示实测瓶颈） |
-| parser/onnx_parser.py | parsers/onnx.py及op_names.py |
-| metrics.py计量规则 | estimation/rules.py |
-| metrics.py汇总与结构/配置/精度分析 | analysis/aggregation.py、topology.py、workloads.py、precision.py、engine.py |
-| metrics.py报告与批处理 | reports/writer.py、batch.py |
-| core/serialization.py | serialization/__init__.py |
-| offline_validation.py | validation/replay.py |
-| LayerPartitioner | extensions/layers.py |
+| Export orchestration in `run.py` and package entry points | `exporters/torch.py`, `exporters/prompt.py`, `cli.py` |
+| `core/operator_node.py` and basic graph operations | `model/records.py`, `model/graph.py` |
+| `core/operator_registry.py` | `model/registry.py` (legacy category strings remain display labels, not measured bottleneck classifications) |
+| `parser/onnx_parser.py` | `parsers/onnx.py`, `parsers/op_names.py` |
+| Static estimation rules in `metrics.py` | `estimation/rules.py` |
+| Aggregation and structural/configuration/precision analysis in `metrics.py` | `analysis/aggregation.py`, `analysis/topology.py`, `analysis/workloads.py`, `analysis/precision.py`, `analysis/engine.py` |
+| Reporting and batch processing in `metrics.py` | `reports/writer.py`, `reports/batch.py` |
+| `core/serialization.py` | `serialization/__init__.py` |
+| `offline_validation.py` | `validation/replay.py` |
+| `LayerPartitioner` | `extensions/layers.py` |
 
-没有把旧仓库.git、旧utils估算、硬件采集、能耗拟合及历史改稿/绘图脚本复制为新核心。迁移代码保留原项目来源说明，尚未代选发布许可证。
+The original `.git` directory, legacy `utils` estimators, hardware collection, energy fitting, and historical manuscript/plot scripts were not copied into the new core. Migrated code retains source attribution. A publication license has not yet been selected.
 
-## 有意修正的行为
+## Intentional behavior corrections
 
-- 未知估算用None/null，完整总量与已知部分总量分开。
-- 旧数据已有static_cost时，它的显式状态优先于旧数值零占位。未携带状态的旧记录不凭数值擅自推断其语义；离线分析显式重算。
-- 加权路径保留真实零权重，未知权重不返回伪完整路径。
-- 环、悬空依赖、父子不对称及重复ID不再被有效图接口静默接受；原始字典分析仍可输出诊断。
-- 标量、未知rank和零尺寸区分；论文已评估范围保持不变。
-- 输入名称/可选槽位/重复操作数和去重依赖边同时保留。
-- 自定义ONNX domain不继承同名标准算子的规则；不影响七份标准domain归档的估算。
-- schema2拒绝丢弃原始类型、属性等必要来源的无metadata写出，避免显示别名改变复算结果。
-- 未知总量的层核查、旧tensor可选默认字段归一处理正确。
-- 两种export输出文件均可被目录批量分析识别，并使用独立报告目录。
-- 临时ONNX清理后不保留失效来源路径；保留ONNX哈希及source_retained声明。模型training/cache状态在成功或失败后恢复，不全局修改环境、warning或pytree注册。
+- Unavailable estimates use `None`/`null`; complete totals and known-part totals remain separate.
+- Explicit states in legacy `static_cost` records take precedence over numeric zero placeholders. Legacy records without states are not assigned semantics from their numeric values alone; offline analysis explicitly recomputes estimates.
+- Weighted paths retain true zero weights; unavailable weights do not produce a falsely complete path.
+- Validated graph interfaces reject cycles, dangling dependencies, asymmetric parent/child links, and duplicate IDs. Analysis of raw dictionaries can still produce diagnostics.
+- Scalars, unknown rank, and zero dimensions remain distinct. The paper's evaluated scope is unchanged.
+- Input names, optional slots, repeated operand uses, and deduplicated dependency edges are preserved together.
+- Custom ONNX domains do not inherit rules from same-named standard operators. Estimates for the seven standard-domain archives are unchanged.
+- Schema 2 rejects writes that omit metadata needed to preserve raw types, attributes, and other provenance, preventing display aliases from changing recomputation.
+- Layer validation handles unavailable totals, and legacy tensor records normalize optional default fields correctly.
+- Directory analysis recognizes both export output filenames and gives each condition its own report directory.
+- Temporary ONNX cleanup removes stale source paths while retaining ONNX hashes and `source_retained` declarations. Model training/cache states are restored after success or failure. Export does not globally modify environment variables, warnings, or pytree registration.
 
-static-v2.0的算术及逻辑访问公式保持。上述修正集中于输入范围、未知状态、图合法性及接口组织，不改变论文归档结果。详细逐项对照见paper_alignment.md。
+The `static-v2.0` arithmetic and logical-access formulas are preserved. These corrections concern input scope, unavailable states, graph validity, and interface organization; they do not change archived paper results. See [paper alignment](paper_alignment.md) for the detailed comparison.
 
-## 验证证据
+## Validation evidence
 
-- `verification.json`：最新测试、wheel构建、无可选依赖安装、环境版本及Git状态核对。
-- `migration_verification.json`：七份归档、十四次前向的完整报告与原实现一致，论文26,074条调用的运算量、逻辑访问量及状态逐项一致。
-- `test_hf_weights_pipeline.py`：真实创建并保存本地GPT-2小模型config、tokenizer、safetensors，再使用公开模型加载接口完成两次实际ONNX导出、JSON及全套报告。测试不下载模型。
-- `test_export_contract.py`：真实小型PyTorch模块导出，以及失败/成功状态恢复、外部文件清理、默认本地加载、输入条件及报告自动生成。
-- `test_paper_contract.py`：论文核心语义及迁移修复的回归用例。
-- 无依赖虚拟环境安装wheel后，已有JSON的analyze和validate命令均通过，环境未安装torch、onnx或transformers。
-- 后续独立核查已从本地Qwen3-0.6B完整HF权重重新执行两次前向：完整prompt为7 tokens，独立探针为1 token，各2420调用。全部4840条调用的原始类型、有序输入输出形状/dtype、父子依赖，以及估算、公式、状态和全部阶段统计均与论文归档一致。旧探针ID去掉dc_前缀后对齐。
-- 七模型归档核查进一步覆盖表2的42个数值单元格、表3的28个单元格、图4的50个计数、936个配置分组及Mistral的32个重复块，均与论文一致。原工作区的`analysis/当前代码与论文结果复核_2026-11-23/`保存可重复核查脚本及结果。
+- [verification.json](verification.json): latest tests, wheel build, installation without optional dependencies, environment versions, and Git-state checks.
+- [migration_verification.json](migration_verification.json): complete reports for seven archives and fourteen forwards agree with the original implementation. Arithmetic work, logical data access, and states agree call by call for all 26,074 paper calls.
+- [test_hf_weights_pipeline.py](../tests/test_hf_weights_pipeline.py): creates and saves a small local GPT-2 model with config, tokenizer, and safetensors, then uses public model-loading interfaces for two actual ONNX exports, JSON, and complete reports. It downloads no model.
+- [test_export_contract.py](../tests/test_export_contract.py): exports a real small PyTorch module and checks success/failure state restoration, external-file cleanup, default local loading, input conditions, and automatic report generation.
+- [test_paper_contract.py](../tests/test_paper_contract.py): regression cases for core paper semantics and migration fixes.
+- [test_report_language.py](../tests/test_report_language.py): verifies English summary and validation reports while checking unchanged numerical fields. All project comments, docstrings, documentation, and generated report prose use English; source-path and provenance values remain data and are preserved.
+- After wheel installation into an environment without optional dependencies, JSON `analyze` and `validate` commands both passed without `torch`, `onnx`, or `transformers` installed.
+- A separate check reran both forwards from complete local Qwen3-0.6B HF weights: a 7-token full prompt and a 1-token independent probe, each with 2,420 calls. All 4,840 calls matched the paper archives in raw types, ordered input/output shapes and dtypes, parent/child dependencies, estimates, formulas, states, and all stage statistics. Legacy probe IDs were aligned by removing the `dc_` prefix.
+- Seven-model archive validation also matched all 42 numeric cells in Table 2, 28 cells in Table 3, 50 counts in Figure 4, 936 configuration groups, and 32 Mistral repeated blocks. Reproducible scripts and results are retained in the original workspace's analysis verification directory.
 
-本轮权重端到端核查覆盖本地生成的小型HF模型及实际Qwen3-0.6B权重。其余六模型未重新从权重导出，仍采用原归档JSON核查。模型需能被当前依赖版本加载并导出为ONNX；当前验证范围不涵盖任意自定义模型。
+Weights-to-reports validation covers the locally generated small HF model and actual Qwen3-0.6B weights. The other six models were checked using archived JSON and were not re-exported from weights. Models must load with the installed dependency versions and support ONNX export; validation does not cover arbitrary custom models.
 
-## 使用补充
+## Additional usage
 
-### Python接口
+### Python API
 
 ```python
 from operator_graph import parse_onnx, graph_to_json
@@ -71,7 +74,7 @@ graph_to_json(graph, output_path="output/graph.json")
 write_reports(analyze_graph(graph.to_dict()), "output/reports")
 ```
 
-从模型权重运行完整流程：
+Run the complete workflow from model weights:
 
 ```python
 from operator_graph.exporters import export_prompt
@@ -79,9 +82,9 @@ from operator_graph.exporters import export_prompt
 graphs = export_prompt("path/to/local-hf-model", "What's the capital of France?", "output/model")
 ```
 
-### 无权重ONNX示例
+### ONNX example without model weights
 
-安装`.[onnx]`后，可生成三调用分叉汇合图：
+After installing `.[onnx]`, generate a three-call graph with branching and merging:
 
 ```text
 python examples/make_branch_graph.py output/branch.onnx
@@ -90,37 +93,37 @@ operator-graph analyze output/graph.json --output output/reports
 operator-graph validate output/graph.json
 ```
 
-### 旧JSON与本地归档回归
+### Legacy JSON and local archive regression
 
-新输出使用schema 2.0，兼容读取旧schema 1.0。旧JSON的prefill/decode标签保持原样；只有确认其来自两个独立无缓存前向时，才使用`analyze --decode-is-probe`声明探针语义。
+New output uses schema 2.0; reading legacy schema 1.0 is supported. Legacy JSON retains its `prefill`/`decode` labels. Use `analyze --decode-is-probe` to declare probe semantics only after confirming that the records came from two independent cache-disabled forwards.
 
 ```text
-python tools/verify_migration.py <原论文工作区> --output output/migration.json
+python tools/verify_migration.py <original-paper-workspace> --output output/migration.json
 ```
 
-此回归工具需要原工作区的七份归档、论文CSV及旧实现作参照。运行新项目的常规构图和分析功能不依赖原仓库。
+This regression tool requires the original workspace's seven archives, paper CSV files, and legacy implementation as references. Normal graph construction and analysis in the new project do not depend on the original repository.
 
-### 包目录
+### Package layout
 
 ```text
 src/operator_graph/
-  model/          # 图、调用、张量、显示注册表
-  parsers/        # ONNX元数据与两轮构图
-  exporters/      # PyTorch导出及HF模型输入适配
-  estimation/     # 静态计量规则
-  analysis/       # 汇总、拓扑、配置和精度统计
-  serialization/  # 版本化JSON读写
-  reports/        # 报告与批量分析
-  validation/     # 完整性与重放核查
-  extensions/     # 可选层划分
+  model/          # Graphs, calls, tensors, display registry
+  parsers/        # ONNX metadata and two-pass graph construction
+  exporters/      # PyTorch export and HF model input adaptation
+  estimation/     # Static estimation rules
+  analysis/       # Aggregation, topology, configuration, precision
+  serialization/  # Versioned JSON reading and writing
+  reports/        # Reports and batch analysis
+  validation/     # Completeness and replay checks
+  extensions/     # Optional layer partitioning
 ```
 
-## 环境说明
+## Environment notes
 
-本地验证环境使用Python 3.13.9、PyTorch 2.12.1、ONNX 1.22.0、ONNXScript 0.7.1、Transformers 5.13.0及pytest 8.4.2；准确版本以verification.json为准。模型导出依赖下限按现代torch导出API设为torch>=2.6。其他声明下限不代表本轮逐版本验证。
+Local validation used Python 3.13.9, PyTorch 2.12.1, ONNX 1.22.0, ONNXScript 0.7.1, Transformers 5.13.0, and pytest 8.4.2. Consult [verification.json](verification.json) for exact versions. Export requires `torch>=2.6` for the modern export API. Other declared minimum versions were not each tested in this run.
 
-本机Anaconda的可选torch测试需要在测试进程设置KMP_DUPLICATE_LIB_OK=TRUE，与原运行环境一致；生产代码没有设置该变量。上游copyreg/Swig弃用提示及pyreadline3退出提示已保留于测试记录，不掩盖为零warning。无依赖核心安装与分析不需要此处理。
+Optional torch tests on this machine's Anaconda installation require `KMP_DUPLICATE_LIB_OK=TRUE` in the test process, as in the original environment. Production code does not set this variable. Upstream copyreg/Swig deprecation warnings and pyreadline3 exit messages remain in the test record; the run is not described as warning-free. Core installation and analysis without optional dependencies need no such setting.
 
-## 下一步发布
+## Publication steps
 
-本地迁移完成后，可确定新的GitHub仓库名称、可见性和许可证，再配置新远端及推送。旧仓库远端未改动。原论文英文/中文/PDF/ZIP、CSV、七份归档和原源码保持哈希基线。
+The local migration is complete. Repository name, visibility, and license remain to be selected before configuring a new remote and pushing. The original repository's remote is unchanged. The original English/Chinese manuscripts, PDF, ZIP, CSV files, seven archives, and source code retain their hash baseline.

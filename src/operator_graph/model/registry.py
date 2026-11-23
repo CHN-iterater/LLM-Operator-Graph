@@ -5,12 +5,12 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional
 
 OPERATOR_CATEGORIES = {
-    "compute_bound": "计算密集型（GEMM, Attention, BMM; AI≥5）",
-    "memory_bound": "访存密集型（Softmax, LayerNorm, Reduction; AI≤1）",
-    "activation": "激活函数（GELU, SiLU, ReLU; AI 1~3）",
-    "data_movement": "数据搬移（Reshape, Transpose, Copy; AI≈0）",
-    "embedding": "嵌入查找",
-    "other": "其他",
+    "compute_bound": "Legacy compute-bound label (GEMM, Attention, BMM; AI >= 5)",
+    "memory_bound": "Legacy memory-bound label (Softmax, LayerNorm, Reduction; AI <= 1)",
+    "activation": "Activation functions (GELU, SiLU, ReLU; legacy AI 1-3)",
+    "data_movement": "Data movement (Reshape, Transpose, Copy; legacy AI approximately zero)",
+    "embedding": "Embedding lookup",
+    "other": "Other",
 }
 
 

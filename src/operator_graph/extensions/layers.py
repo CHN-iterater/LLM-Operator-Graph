@@ -1,4 +1,4 @@
-"""层边界划分 — 通过 ADD 节点深度分析或高频算子检测识别 Transformer 层。"""
+"""Infer transformer-layer boundaries from residual ADD depth and operator positions."""
 from __future__ import annotations
 from collections import defaultdict
 from typing import Optional
@@ -6,7 +6,7 @@ from operator_graph.model.records import LayerNode
 
 _RESIDUAL_DEPTH_THRESHOLD = 8
 def _get_attn_ops():
-    """从注册表动态获取 attention 算子名 + SOFTMAX。"""
+    """Get attention operator names from the registry and include SOFTMAX."""
     try:
         from operator_graph.model.registry import OperatorRegistry
         ops = [s.name for s in OperatorRegistry.get_default().get_by_tag("attention")]
@@ -52,12 +52,12 @@ class LayerPartitioner:
         return tree
 
     def _find_block_boundaries(self) -> list[int]:
-        """通过 ADD 深度或高频算子检测层边界。"""
+        """Find boundaries using ADD depth, with operator-position fallbacks."""
         n = len(self._nodes)
         if n < 10:
             return []
 
-        # 方法1: 残差 ADD 深度分析
+        # Strategy 1: inspect residual ADD depth.
         residual_adds = []
         for i, node in enumerate(self._nodes):
             if node.op_type != "ADD":
@@ -69,13 +69,13 @@ class LayerPartitioner:
         if len(residual_adds) >= 2:
             boundaries = []
             for idx, (i, node, depth) in enumerate(residual_adds):
-                if idx % 2 == 1:  # 每2个一组，第2个是 mlp residual
+                if idx % 2 == 1:  # Pair residual additions; the second closes the MLP residual.
                     boundaries.append(i + 1)
             boundaries = [b for b in boundaries if 3 < b < n - 3]
             if boundaries:
                 return boundaries
 
-        # 方法2: 回退到检测高频算子(Attention/Softmax等)
+        # Strategy 2: fall back to frequent attention/softmax positions.
         return self._fallback_boundaries()
 
     def _add_depth(self, topo_idx: int) -> int:
@@ -90,34 +90,32 @@ class LayerPartitioner:
         return max_depth
 
     def _fallback_boundaries(self) -> list[int]:
-        """回退: 用 SkipLayerNorm 或 ATTENTION 算子位置检测层边界。
+        """Infer boundaries from fused skip-normalization or attention positions.
 
-        策略:
-          1) 找 SkipLayerNorm(残差连接+层归一化融合算子)位置,
-             每 2 个 SkipLayerNorm = 1 个 block.
-             第 2,4,6… 个 SkipLayerNorm 是 block 边界。
-          2) 回退到 ATTENTION 位置检测。"""
-        # 策略1: SkipLayerNorm 定位
+        Pair skip-normalization nodes representing residual normalization.
+        Every second node marks a block boundary. If this heuristic fails,
+        fall back to attention positions."""
+        # Strategy 1: locate fused skip-normalization calls.
         skip_norm_positions = []
         for i, node in enumerate(self._nodes):
             if node.op_type in ("LAYER_NORM", "RMS_NORM"):
-                # 检查是否为 Skip 变体
+                # Check for a skip-normalization variant.
                 if "Skip" in node.raw_target or "skip" in node.raw_target:
                     skip_norm_positions.append(i)
 
-        if len(skip_norm_positions) >= 4:  # 至少 2 个 block
-            # 每 2 个一组,第 2 个是 block 边界
+        if len(skip_norm_positions) >= 4:  # Require at least two blocks.
+            # Every second node in each pair marks a block boundary.
             boundaries = [skip_norm_positions[i] for i in range(1, len(skip_norm_positions), 2)]
-            # 过滤太靠近开头/结尾的
+            # Exclude boundaries too close to either end.
             n = len(self._nodes)
             boundaries = [b for b in boundaries if 3 < b < n - 3]
             if len(boundaries) >= 1:
-                # 检查边界间距是否合理(太近则回退)
+                # Reject implausibly narrow blocks and use the fallback.
                 gaps = [boundaries[i+1] - boundaries[i] for i in range(len(boundaries)-1)]
                 if gaps and min(gaps) >= 5:
                     return boundaries
 
-        # 策略2: ATTENTION 位置回退
+        # Strategy 2: use attention positions.
         attn_positions = []
         for i, node in enumerate(self._nodes):
             if node.op_type in _get_attn_ops():
@@ -125,11 +123,11 @@ class LayerPartitioner:
 
         if len(attn_positions) >= 2:
             n_total = len(self._nodes)
-            # 第一个 attention 到最后一个 attention 之间的范围
+            # Span from the first to the last attention call.
             first = attn_positions[0]
             last = attn_positions[-1]
             span = last - first
-            # 按 attention 数量等分
+            # Divide the span using the attention-call count.
             num_blocks = len(attn_positions)
             step = max(span // num_blocks, 5)
             boundaries = [first + step * (i + 1) for i in range(num_blocks - 1)]
@@ -153,7 +151,7 @@ class LayerPartitioner:
         for node in nodes:
             layer.op_ids.append(node.op_id)
 
-        # 用算子结构判断层类型，不依赖具体激活函数名
+        # Infer layer type from structure rather than a specific activation name.
         has_attn = any(n.op_type in _get_attn_ops() for n in nodes)
         has_linear = any(n.op_type == "LINEAR" for n in nodes)
         has_embedding = any(n.op_type == "EMBEDDING" for n in nodes)
@@ -175,13 +173,12 @@ class LayerPartitioner:
         return layer
 
     def _add_sublayers(self, parent_layer: LayerNode, nodes, parent_id: str) -> None:
-        """在 transformer_block 内划分 attention 和 mlp 子层。
+        """Partition a transformer block into attention and MLP display groups.
 
-        方法:
-          1) ADD 深度分析(适用于分解式 Attention)
-          2) 回退: 用 ATTENTION 算子定位(适用于融合式 Attention)
+        Use ADD-depth boundaries for decomposed attention, or attention
+        operator positions for fused attention.
         """
-        # 方法1: ADD 深度分析
+        # Strategy 1: inspect ADD depth.
         residual_indices = []
         for i, node in enumerate(nodes):
             if node.op_type == "ADD":
@@ -201,18 +198,18 @@ class LayerPartitioner:
                 op_ids=mlp_ids))
             return
 
-        # 方法2: 用 ATTENTION 算子定位(融合式)
+        # Strategy 2: locate fused attention calls.
         attn_end = 0
         for i, node in enumerate(nodes):
             if node.op_type in _get_attn_ops():
                 attn_end = i
         if attn_end > 0:
-            # Attention 之后可能还有输出投影 GEMM
+            # Include an output-projection GEMM following attention.
             attn_end += 1
             while attn_end < len(nodes) and nodes[attn_end].op_type in (
                     "GEMM", "LINEAR", "RESHAPE", "ADD"):
                 attn_end += 1
-            # 划分
+            # Partition the groups.
             attn_ids = [n.op_id for n in nodes[:attn_end]]
             mlp_ids = [n.op_id for n in nodes[attn_end:]]
             parent_layer.add_child(LayerNode(

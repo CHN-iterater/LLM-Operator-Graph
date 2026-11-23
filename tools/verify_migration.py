@@ -23,7 +23,7 @@ def main():
     spec = importlib.util.spec_from_file_location('reference_metrics', root/'LLM-Graph-Parser/llm_graph_parser/metrics.py')
     reference = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(reference)
-    baseline = json.loads((root/'analysis/新项目代码梳理_2026-11-23/baseline.json').read_text(encoding='utf-8'))
+    baseline = json.loads((root/'analysis/\u65b0\u9879\u76ee\u4ee3\u7801\u68b3\u7406_2026-11-23/baseline.json').read_text(encoding='utf-8'))
     sources, graphs = {}, []
     sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
     for entry in baseline['archived_graphs']:
@@ -48,7 +48,7 @@ def main():
         assert cost['flops_status'] == row['arithmetic_status']
     for path, digest in {**baseline['paper_artifact_hashes'], **baseline['paper_csv_hashes']}.items():
         assert sha(root/path) == digest, f'Protected artifact changed: {path}'
-    inventory = json.loads((root/'analysis/新项目代码梳理_2026-11-23/inventory.json').read_text(encoding='utf-8'))
+    inventory = json.loads((root/'analysis/\u65b0\u9879\u76ee\u4ee3\u7801\u68b3\u7406_2026-11-23/inventory.json').read_text(encoding='utf-8'))
     for entry in inventory['files']:
         assert sha(root/'LLM-Graph-Parser'/entry['path']) == entry['sha256']
     result = {'archive_graphs': graphs, 'forwards': sum(g['stages'] for g in graphs),
