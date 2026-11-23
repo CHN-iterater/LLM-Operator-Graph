@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "operator-graph"
+version = "0.1.0"
+description = "Call-level operator graphs and traceable static workload estimates"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+onnx = ["onnx>=1.16"]
+export = ["onnx>=1.16", "torch>=2.6", "onnxscript>=0.1", "transformers>=4", "accelerate>=0.30", "safetensors>=0.4"]
+test = ["pytest>=8", "onnx>=1.16"]
+
+[project.scripts]
+operator-graph = "operator_graph.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

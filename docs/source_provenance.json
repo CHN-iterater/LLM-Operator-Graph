@@ -1,0 +1,180 @@
+{
+  "source_project": "https://github.com/CHN-iterater/LLM-Graph-Parser",
+  "source_head": "326cad0d77cf8e1259748111ce8869372d5181d8",
+  "source_is_working_tree_not_just_head": true,
+  "migrated_from_working_tree_files": [
+    {
+      "path": ".gitattributes",
+      "sha256": "9b763d99e1ef41745f152a5ddc81bcd1586d809452ff8ba7e116a16dbf14405a"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "b34876c98fd89a14a04be479a12a1612b5aaad4f8597c0d73a66ae171d60c80e"
+    },
+    {
+      "path": "llm_graph_parser/__init__.py",
+      "sha256": "63413aa83e772eff46536d20805b4c554661159403b738cc9f118b9cf2d83770"
+    },
+    {
+      "path": "llm_graph_parser/config/__init__.py",
+      "sha256": "f58ccad807a45ac7a5621182add56e4279b46885b09caa8b5fe73af04a42bf84"
+    },
+    {
+      "path": "llm_graph_parser/config/defaults.py",
+      "sha256": "9bae9c21714d5c20efcbad2dc56d2efd46e8b9b2ed53c1498d11612f00b16705"
+    },
+    {
+      "path": "llm_graph_parser/core/__init__.py",
+      "sha256": "b3351d800b06e0ef81b84d86a59b17cfe0ae876eb07cd84ad2f357a76c9710b4"
+    },
+    {
+      "path": "llm_graph_parser/core/computation_graph.py",
+      "sha256": "962ed2c1903ad88d055713e2b9d750f4451acbb66042a2e96d787892ff97cfe3"
+    },
+    {
+      "path": "llm_graph_parser/core/layer_partitioner.py",
+      "sha256": "ad523284653b86145b37fdac3e8deea526292732ee16791fcfd1d5f4926df99e"
+    },
+    {
+      "path": "llm_graph_parser/core/operator_node.py",
+      "sha256": "95c80444afbd6e806280afecfb0e85657e2220d3c1e89a6226f8933abc439373"
+    },
+    {
+      "path": "llm_graph_parser/core/operator_registry.py",
+      "sha256": "67ab3aed03595ad77f9d9a8be492c464abbdc60eb045a875e77fa4aa5baae717"
+    },
+    {
+      "path": "llm_graph_parser/core/phase_splitter.py",
+      "sha256": "5a68357c1e60e361232ae03d7fd738dfd0b3dcb560f41f5b2dedc4dbee63fac4"
+    },
+    {
+      "path": "llm_graph_parser/core/serialization.py",
+      "sha256": "18439b01a309915a7f3795c5136c3470cae1f0b8a0a72e1c0c6d34f26ba01322"
+    },
+    {
+      "path": "llm_graph_parser/hardware/__init__.py",
+      "sha256": "bda9399dd001fb9694e475bf4fa57b6fdb24485a1ac11160eeab49cbf0fdcc24"
+    },
+    {
+      "path": "llm_graph_parser/hardware/abstraction.py",
+      "sha256": "8c422b360876856ce6f0436d0753be6e2b7929eb56ceb4b0454eaf4fc7e19f42"
+    },
+    {
+      "path": "llm_graph_parser/hooks/__init__.py",
+      "sha256": "c7c4f12e8da23c2cd54761518b94d02a49eeaeeae259e1291eb6869816982442"
+    },
+    {
+      "path": "llm_graph_parser/hooks/module_hook.py",
+      "sha256": "e3e73eacedf928027bb4376013d4d91e1251a01e3f5f0fceef440e2644d40088"
+    },
+    {
+      "path": "llm_graph_parser/hooks/operator_hook.py",
+      "sha256": "8c517b104c2821899e5e153ffc6e26a46ecbd7dfa50e6f0b5b9a43f60c7f85cc"
+    },
+    {
+      "path": "llm_graph_parser/metrics.py",
+      "sha256": "8ea40f9510ba2ccbbdadd49ed8a4fb60978921e049c844e60deb531b17d7bf52"
+    },
+    {
+      "path": "llm_graph_parser/offline_validation.py",
+      "sha256": "a71a2377c3ad4489387ec58af4e7aeadf790c3fad73ee4ea81d5e9c5759dc8b6"
+    },
+    {
+      "path": "llm_graph_parser/parser/__init__.py",
+      "sha256": "f85ce5fb4d8aa714d1965909720789384b66a765d89b060e8f5cf76b861279e4"
+    },
+    {
+      "path": "llm_graph_parser/parser/module_parser.py",
+      "sha256": "5f79ed1c021865ba03bda327e28c8cefb7f955cf04ed4e960b407cd7e561e645"
+    },
+    {
+      "path": "llm_graph_parser/parser/onnx_parser.py",
+      "sha256": "5696ef2bf8623209859186c18d94ac11c9b9bb0a6d8e81ad3259ad749f5e6e14"
+    },
+    {
+      "path": "llm_graph_parser/parser/operator_parser.py",
+      "sha256": "6ad44567bd20032d6fde364b35685fd79ffc5063d4481821cdabfd3beda1ea5d"
+    },
+    {
+      "path": "llm_graph_parser/parser/tensor_recorder.py",
+      "sha256": "e79a383851ab6d537f6caf2f0a803c8c10c7cd851bf3b259fc10cce9ce497993"
+    },
+    {
+      "path": "llm_graph_parser/utils/__init__.py",
+      "sha256": "8d49cb8797eabdf9e2ba77c68cb68ac776432448963b30d13892e48e335efc13"
+    },
+    {
+      "path": "llm_graph_parser/utils/flops_calculator.py",
+      "sha256": "f97df5135938ae28141209303667160c2893b786136a04bc0f92528755470ac6"
+    },
+    {
+      "path": "llm_graph_parser/utils/memory_calculator.py",
+      "sha256": "90fe305192f32fd9604548768c729497b92408f4f4cca3f97785358b94a0ad2a"
+    },
+    {
+      "path": "README.md",
+      "sha256": "664f8691475eec8cc8c59e90cdacb021ba5e3aaa2fe8267ab0bf4b3fd26be284"
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "79bafe8f34646f6499e275a7e8752ffc8c3ff3cd95cfc7d1f87c36612fb310e8"
+    },
+    {
+      "path": "run.py",
+      "sha256": "c7844485bf775753199ec8db513601894d2750b8aac6d477ee5aa12a05e8bc2f"
+    },
+    {
+      "path": "setup.py",
+      "sha256": "42b186698e68eb2ccc4a3ea8b263a83c91d72620b18bfe7acc0da6619239e9dc"
+    },
+    {
+      "path": "TECHNICAL.md",
+      "sha256": "4e6284eade3866c8e0062df2e98f9cc8b4fbbbf614b1e9591b03854720cc927e"
+    },
+    {
+      "path": "tests/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "tests/test_computation_graph.py",
+      "sha256": "342a3ef27043f9c4500cccf46f9ab84f019ccbbf3bb1a3da7219bd7a534e02fd"
+    },
+    {
+      "path": "tests/test_export_runtime.py",
+      "sha256": "b75253db7c928554ff52ef2db08d3d6dd51838f6eff88d6ae4a112ee62576015"
+    },
+    {
+      "path": "tests/test_flops_calculator.py",
+      "sha256": "b2696b4c95c6a51b2ec61295449992966d8db604964d24f3589d59e8379cd884"
+    },
+    {
+      "path": "tests/test_layer_partitioner.py",
+      "sha256": "d9987e79c4c95c498061ba53c5b0351192508302a10a8dc299628f984050f245"
+    },
+    {
+      "path": "tests/test_memory_calculator.py",
+      "sha256": "9e85c1336a1e9d01b95367418c0359f354c6b289fed325d092a54744f6db08a1"
+    },
+    {
+      "path": "tests/test_offline_validation.py",
+      "sha256": "f04fd100be45ccdcce78705bf85a645bcd21010ccd07a9768cf6152aa28663e8"
+    },
+    {
+      "path": "tests/test_operator_registry.py",
+      "sha256": "27709ae831aa1eeab15ce45d630d30fcbb48a86d4dfe69577bcd201b762f3999"
+    },
+    {
+      "path": "tests/test_quantitative_metrics.py",
+      "sha256": "a282e003fe09502031fa4381468cdadf6fb004e30d85f9b57045e408e2d0298e"
+    },
+    {
+      "path": "tests/test_workload_metrics.py",
+      "sha256": "4326b2f51a32e0099706d7e1dbf8fd7180668d2bc186f4ff5fd801e70f18dffe"
+    },
+    {
+      "path": "定量指标说明.md",
+      "sha256": "06686bc24c658c1f99773d1401e6432af7a4b767fcb9a366062168c3113ac010"
+    }
+  ],
+  "note": "Current local working tree includes unpublished additions; this manifest records file provenance, not an assertion that every historical file was copied."
+}

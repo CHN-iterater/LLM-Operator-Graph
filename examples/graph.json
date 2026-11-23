@@ -1,0 +1,264 @@
+{
+  "schema_version": "2.0",
+  "created_at": "2026-11-23T00:00:00+00:00",
+  "model_name": "branch",
+  "prompt": {
+    "text": "",
+    "tokens": 0
+  },
+  "execution": {
+    "graph_kind": "onnx_forward",
+    "example_generator": "examples/make_branch_graph.py",
+    "subgraphs_expanded": false
+  },
+  "summary": {
+    "num_nodes": 3,
+    "num_layers": 1,
+    "layers": [
+      "root"
+    ],
+    "operator_counts": {
+      "MUL": 1,
+      "ADD": 2
+    },
+    "total_flops": 18,
+    "total_memory_bytes": 216,
+    "known_flops": 18,
+    "known_memory_bytes": 216
+  },
+  "layer_tree": null,
+  "nodes": [
+    {
+      "op_id": "onnx_op_0000",
+      "op_type": "MUL",
+      "op_name": "Mul_0",
+      "category": "data_movement",
+      "layer_id": "root",
+      "flops": 6,
+      "memory_bytes": 72,
+      "arith_intensity": 0.08333333333333333,
+      "stage": "forward",
+      "parents": [],
+      "children": [
+        "onnx_op_0001",
+        "onnx_op_0002"
+      ],
+      "input_tensors": [
+        {
+          "shape": [
+            2,
+            3
+          ],
+          "dtype": "float32",
+          "device": "cpu"
+        },
+        {
+          "shape": [
+            2,
+            3
+          ],
+          "dtype": "float32",
+          "device": "cpu"
+        }
+      ],
+      "output_tensors": [
+        {
+          "shape": [
+            2,
+            3
+          ],
+          "dtype": "float32",
+          "device": "cpu"
+        }
+      ],
+      "raw_target": "Mul",
+      "metadata": {
+        "onnx_op_type": "Mul",
+        "domain": "",
+        "source": "onnx",
+        "onnx_index": 0,
+        "input_names": [
+          "x",
+          "x"
+        ],
+        "output_names": [
+          "a"
+        ],
+        "input_slots": [
+          "x",
+          "x"
+        ],
+        "output_slots": [
+          "a"
+        ],
+        "onnx_attributes": {},
+        "static_cost": {
+          "cost_model": "static-v2.0",
+          "flops": 6,
+          "flops_status": "exact",
+          "flops_formula": "one scalar operation per output element",
+          "declared_tensor_bytes": 72,
+          "logical_io_bytes": 72,
+          "io_assumption": "read each declared input once + write each output once",
+          "arithmetic_intensity": 0.08333333333333333
+        }
+      },
+      "hardware_metrics": {}
+    },
+    {
+      "op_id": "onnx_op_0001",
+      "op_type": "ADD",
+      "op_name": "Add_1",
+      "category": "data_movement",
+      "layer_id": "root",
+      "flops": 6,
+      "memory_bytes": 72,
+      "arith_intensity": 0.08333333333333333,
+      "stage": "forward",
+      "parents": [
+        "onnx_op_0000"
+      ],
+      "children": [
+        "onnx_op_0002"
+      ],
+      "input_tensors": [
+        {
+          "shape": [
+            2,
+            3
+          ],
+          "dtype": "float32",
+          "device": "cpu"
+        },
+        {
+          "shape": [
+            2,
+            3
+          ],
+          "dtype": "float32",
+          "device": "cpu"
+        }
+      ],
+      "output_tensors": [
+        {
+          "shape": [
+            2,
+            3
+          ],
+          "dtype": "float32",
+          "device": "cpu"
+        }
+      ],
+      "raw_target": "Add",
+      "metadata": {
+        "onnx_op_type": "Add",
+        "domain": "",
+        "source": "onnx",
+        "onnx_index": 1,
+        "input_names": [
+          "a",
+          "x"
+        ],
+        "output_names": [
+          "b"
+        ],
+        "input_slots": [
+          "a",
+          "x"
+        ],
+        "output_slots": [
+          "b"
+        ],
+        "onnx_attributes": {},
+        "static_cost": {
+          "cost_model": "static-v2.0",
+          "flops": 6,
+          "flops_status": "exact",
+          "flops_formula": "one scalar operation per output element",
+          "declared_tensor_bytes": 72,
+          "logical_io_bytes": 72,
+          "io_assumption": "read each declared input once + write each output once",
+          "arithmetic_intensity": 0.08333333333333333
+        }
+      },
+      "hardware_metrics": {}
+    },
+    {
+      "op_id": "onnx_op_0002",
+      "op_type": "ADD",
+      "op_name": "Add_2",
+      "category": "data_movement",
+      "layer_id": "root",
+      "flops": 6,
+      "memory_bytes": 72,
+      "arith_intensity": 0.08333333333333333,
+      "stage": "forward",
+      "parents": [
+        "onnx_op_0000",
+        "onnx_op_0001"
+      ],
+      "children": [],
+      "input_tensors": [
+        {
+          "shape": [
+            2,
+            3
+          ],
+          "dtype": "float32",
+          "device": "cpu"
+        },
+        {
+          "shape": [
+            2,
+            3
+          ],
+          "dtype": "float32",
+          "device": "cpu"
+        }
+      ],
+      "output_tensors": [
+        {
+          "shape": [
+            2,
+            3
+          ],
+          "dtype": "float32",
+          "device": "cpu"
+        }
+      ],
+      "raw_target": "Add",
+      "metadata": {
+        "onnx_op_type": "Add",
+        "domain": "",
+        "source": "onnx",
+        "onnx_index": 2,
+        "input_names": [
+          "a",
+          "b"
+        ],
+        "output_names": [
+          "y"
+        ],
+        "input_slots": [
+          "a",
+          "b"
+        ],
+        "output_slots": [
+          "y"
+        ],
+        "onnx_attributes": {},
+        "static_cost": {
+          "cost_model": "static-v2.0",
+          "flops": 6,
+          "flops_status": "exact",
+          "flops_formula": "one scalar operation per output element",
+          "declared_tensor_bytes": 72,
+          "logical_io_bytes": 72,
+          "io_assumption": "read each declared input once + write each output once",
+          "arithmetic_intensity": 0.08333333333333333
+        }
+      },
+      "hardware_metrics": {}
+    }
+  ]
+}
